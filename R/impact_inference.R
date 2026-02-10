@@ -28,7 +28,6 @@ GetPosteriorStateSamples <- function(bsts.model) {
 
   # Get state contributions (e.g., 1000 samples x 2 states x 365 time pts),
   # discarding burn-in samples (=> 900 x 2 x 365)
-  set.seed(1)
   burn <- SuggestBurn(0.1, bsts.model)
   assert_that(burn > 0)
   state.contributions <- bsts.model$state.contributions[-seq_len(burn), , ,
@@ -52,7 +51,6 @@ ComputeResponseTrajectories <- function(bsts.model) {
   # Returns:
   #   matrix [number of post-burn-in MCMC samples] x [time points]
 
-  set.seed(1)
   # Get posterior state samples
   state.samples <- GetPosteriorStateSamples(bsts.model)
 
@@ -539,7 +537,7 @@ CheckInputForCompilePosteriorInferences <- function(bsts.model, y.cf,
 
 CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
                                        alpha = 0.05, UnStandardize = identity, 
-                                       treatment.end = NULL) {
+                                       treatment.end.index = NULL) {
   # Takes in a fitted \code{bsts} model and computes the posterior predictive
   # distributions, over time, for the counterfactual response and the causal
   # effect.
@@ -555,7 +553,7 @@ CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
   #   UnStandardize: If \code{bsts()} was run on standardized data, this is the
   #                  function to undo that standardization. This is critical for
   #                  obtaining correct cumulative predictions.
-  #   treatment.end: The index of the end of treatment in the original data.
+  #   treatment.end.index: The index of the end of treatment in the original data.
   #                  If end of treatment does not coincidide with end of data, this is
   #                  additionally supplied.
   #
@@ -565,7 +563,7 @@ CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
   #   report:  verbal description of the summary statistics
 
   # Check input
-  checked <- CheckInputForCompilePosteriorInferences(bsts.model, y.cf,
+  checked <- CheckInputForCompilePosteriorCompilePosteriorInferences(bsts.model, y.cf,
                                                      post.period, alpha,
                                                      UnStandardize)
   bsts.model <- checked$bsts.model
@@ -591,14 +589,14 @@ CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
 
   # Compile summary statistics (in original space). Summary statistics consider
   # quantities in the period from start of treatment until the end of treatment, not
-  # necessarily the end of the data.
+  # necessarily the end of the data. This allows for cooldown period after experiment.
   treatment.start <- post.period[1]
-  if (is.null(treatment.end)) {
-    treatment.end <- post.period[2]
+  if (is.null(treatment.end.index)) {
+    treatment.end.index <- post.period[2]
   } 
-  post.period <- c(treatment.start, treatment.end)
+  post.period <- c(treatment.start, treatment.end.index)
 
-  is.post.period <- (indices >= treatment.start) & (indices <= treatment.end)
+  is.post.period <- (indices >= treatment.start) & (indices <= treatment.end.index)
   y.samples.post <- y.samples[, is.post.period, drop = FALSE]
   point.pred.mean.post <- point.pred$point.pred[is.post.period]
   y.post <- y.model[is.post.period]

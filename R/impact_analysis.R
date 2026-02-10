@@ -209,11 +209,11 @@ FormatInputForCausalImpact <- function(data, pre.period, post.period,
 CausalImpact <- function(data = NULL,
                          pre.period = NULL,
                          post.period = NULL,
-                         treatment.end = NULL,
                          model.args = NULL,
                          bsts.model = NULL,
                          post.period.response = NULL,
-                         alpha = 0.05) {
+                         alpha = 0.05,
+                         treatment.end = NULL) {
   # CausalImpact() performs causal inference through counterfactual
   # predictions using a Bayesian structural time-series model.
   #
@@ -254,9 +254,6 @@ CausalImpact <- function(data = NULL,
   #                   same time scale. If \code{data} doesn't have a \code{time}
   #                   attribute, \code{post.period} is indicated with indices.
   #
-  #   treatment.end:  Optional argument representing the date that treatment ends if it
-  #                   does not coincide with end of the data provided.
-  #
   #   model.args:     Optional arguments that can be used to adjust the default
   #                   construction of the state-space model used for inference.
   #                   For full control over the model, you can construct your own
@@ -280,6 +277,14 @@ CausalImpact <- function(data = NULL,
   #
   #   alpha:          Desired tail-area probability for posterior intervals.
   #                   Defaults to 0.05, which will produce central 95\% intervals.
+  #
+  #   treatment.end:  Optional argument representing the date that treatment ends if it
+  #                   does not coincide with end of the data provided. For example, suppose that we 
+  #                   have data from 1/01/2026 - 12/31/2026, however, our experiment was only run between
+  #                   6/01/2026 - 7/01/26. In this case, our data has four relevant dates: the start of the data
+  #                   (1/01/2026), the start of treatment (6/01/2026), end of treatment (7/01/26), and end of data
+  #                   (12/31/26). Here, we only want impact calculation over the course of treatment AND predictions
+  #                   over the full amount of data.
   #
   # Returns:
   #   A CausalImpact object. This is a list of:
@@ -349,13 +354,15 @@ CausalImpact <- function(data = NULL,
                                         model.args, bsts.model,
                                         post.period.response, alpha)
 
-  # If treatment.end is not null then we get its index in the series
+  # If treatment.end is not null then we get its index in the series by 
+  # finding the index of the corresponding date in data
+  treatment.end.index <- NULL
   if (!is.null(treatment.end)) {
     times <- time(data)
     indices <- seq_along(times)
     is.period <- (post.period[1] <= times) & (times <= as.Date(treatment.end))
     period.indices <- range(indices[is.period])
-    treatment.end <- period.indices[2]
+    treatment.end.index <- period.indices[2]
   }
 
   data <- checked$data
@@ -368,7 +375,7 @@ CausalImpact <- function(data = NULL,
 
   # Depending on input, dispatch to the appropriate Run* method()
   if (!is.null(data)) {
-    impact <- RunWithData(data, pre.period, post.period, treatment.end, model.args, alpha)
+    impact <- RunWithData(data, pre.period, post.period, model.args, alpha, treatment.end.index)
     # Return pre- and post-period in the time unit of the time series.
     times <- time(data)
     impact$model$pre.period <- times[pre.period]
@@ -380,7 +387,7 @@ CausalImpact <- function(data = NULL,
   return(impact)
 }
 
-RunWithData <- function(data, pre.period, post.period, treatment.end = NULL, model.args, alpha) {
+RunWithData <- function(data, pre.period, post.period, model.args, alpha, treatment.end.index = NULL) {
   # Runs an impact analysis on top of a fitted bsts model.
   #
   # Args:
@@ -389,10 +396,10 @@ RunWithData <- function(data, pre.period, post.period, treatment.end = NULL, mod
   #                  limits.
   #   post.period:   two-element vector specifying the indices of the post-period
   #                  limits.
-  #   treatment.end: Index representing the end of treatment if it does not coincide with
-  #                  the end of the data.
   #   model.args:    list of model arguments
   #   alpha:         tail-probabilities of posterior intervals
+  #   treatment.end.index: Index representing the end of treatment if it does not coincide with
+  #                  the end of the data.
   #
   # Returns:
   #   See CausalImpact().
@@ -438,7 +445,7 @@ RunWithData <- function(data, pre.period, post.period, treatment.end = NULL, mod
     # only sees the data from the beginning of the pre-period.
     inferences <- CompilePosteriorInferences(bsts.model, y.cf,
                                              post.period - pre.period[1] + 1,
-                                             alpha, UnStandardize, treatment.end)
+                                             alpha, UnStandardize, treatment.end.index)
   } else {
     inferences <- CompileNaInferences(data[, 1])
   }
