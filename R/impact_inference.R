@@ -563,7 +563,7 @@ CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
   #   report:  verbal description of the summary statistics
 
   # Check input
-  checked <- CheckInputForCompilePosteriorCompilePosteriorInferences(bsts.model, y.cf,
+  checked <- CheckInputForCompilePosteriorInferences(bsts.model, y.cf,
                                                      post.period, alpha,
                                                      UnStandardize)
   bsts.model <- checked$bsts.model
@@ -623,6 +623,7 @@ CompilePosteriorInferences <- function(bsts.model, y.cf, post.period,
   series$cum.effect.lower <- series$cum.y.model - series$cum.pred.upper
   series$cum.effect.upper <- series$cum.y.model - series$cum.pred.lower
   assert_that(nrow(series) == length(bsts.model$original.series))
+
 
   # Set effects and cumulative effects to NA at time points not belonging to
   # pre- or post-period.
