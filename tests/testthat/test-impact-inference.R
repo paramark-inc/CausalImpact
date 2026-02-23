@@ -74,7 +74,7 @@ test_that("ComputeCumulativePredictions", {
                            point.pred.upper = rnorm(100))
   y <- rnorm(100)
   cum.pred <- ComputeCumulativePredictions(y.samples, point.pred, y,
-                                           post.period.begin = 51,
+                                           treatment.start = 51,
                                            alpha = 0.05)
   expect_equal(dim(cum.pred), c(100, 3))
   expect_equal(names(cum.pred), c("cum.pred", "cum.pred.lower",
@@ -82,7 +82,7 @@ test_that("ComputeCumulativePredictions", {
 
   # Test post-period that consists of only 1 time point
   cum.pred <- ComputeCumulativePredictions(y.samples, point.pred, y,
-                                           post.period.begin = 100,
+                                           treatment.start = 100,
                                            alpha = 0.05)
   expect_equal(dim(cum.pred), c(100, 3))
   expect_equal(names(cum.pred), c("cum.pred", "cum.pred.lower",
@@ -92,7 +92,7 @@ test_that("ComputeCumulativePredictions", {
   y.na <- y
   y.na[3] <- NA
   cum.pred <- ComputeCumulativePredictions(y.samples, point.pred, y.na,
-                                           post.period.begin = 51,
+                                           treatment.start = 51,
                                            alpha = 0.05)
   expect_true(all(is.na(cum.pred[3, ])))
   expect_false(anyNA(cum.pred[-3, ]))
@@ -102,7 +102,7 @@ test_that("ComputeCumulativePredictions", {
   y.na <- y
   y.na[48 : 50] <- NA
   cum.pred <- ComputeCumulativePredictions(y.samples, point.pred, y.na,
-                                           post.period.begin = 51,
+                                           treatment.start = 51,
                                            alpha = 0.05)
   expect_true(all(is.na(cum.pred[48 : 50, ])))
   expect_false(anyNA(cum.pred[-(48 : 50), ]))
@@ -112,7 +112,7 @@ test_that("ComputeCumulativePredictions", {
   y.na <- y
   y.na[1 : 50] <- NA
   expect_error(ComputeCumulativePredictions(y.samples, point.pred, y.na,
-                                            post.period.begin = 51,
+                                            treatment.start = 51,
                                             alpha = 0.05),
                "length")
 })
